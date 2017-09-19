@@ -100,7 +100,6 @@
             for (SFTranscription* transcription in result.transcriptions) {
                 [transcriptionDics addObject:transcription.formattedString];
             }
-            NSLog(@"%d", isFinal);
             [self sendResult:nil:result.bestTranscription.formattedString :transcriptionDics :@(isFinal)];
         }
       
@@ -144,7 +143,7 @@
     if (transcriptions != nil) {
         [self sendEventWithName:@"onSpeechPartialResults" body:@{@"value":transcriptions} ];
     }
-    if (isFinal != nil) {
+    if (isFinal != nil && [isFinal isEqual:@1]) {
         [self sendEventWithName:@"onSpeechRecognized" body: isFinal];
     }
 }
