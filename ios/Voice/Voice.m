@@ -82,10 +82,6 @@
     // A recognition task represents a speech recognition session.
     // We keep a reference to the task so that it can be cancelled.
     self.recognitionTask = [self.speechRecognizer recognitionTaskWithRequest:self.recognitionRequest resultHandler:^(SFSpeechRecognitionResult * _Nullable result, NSError * _Nullable error) {
-
-        if (self.recognitionTask.isCancelled || self.recognitionTask.isFinishing){
-            [self sendEventWithName:@"onSpeechEnd" body:@{@"error": @false}];
-        }
         
         if (error != nil) {
             NSString *errorMessage = [NSString stringWithFormat:@"%ld/%@", error.code, [error localizedDescription]];
@@ -104,6 +100,9 @@
         }
       
         if (isFinal == YES) {
+            if (self.recognitionTask.isCancelled || self.recognitionTask.isFinishing){
+                [self sendEventWithName:@"onSpeechEnd" body:@{@"error": @false}];
+            }
             [self teardown];
         }
       
@@ -143,8 +142,8 @@
     if (transcriptions != nil) {
         [self sendEventWithName:@"onSpeechPartialResults" body:@{@"value":transcriptions} ];
     }
-    if (isFinal != nil && [isFinal isEqual:@1]) {
-        [self sendEventWithName:@"onSpeechRecognized" body: isFinal];
+    if (isFinal != nil) {
+        [self sendEventWithName:@"onSpeechRecognized" body: @{@"isFinal": isFinal}];
     }
 }
 
