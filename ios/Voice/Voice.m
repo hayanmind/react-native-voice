@@ -38,7 +38,7 @@
     
     NSError* audioSessionError = nil;
     self.audioSession = [AVAudioSession sharedInstance];
-    [self.audioSession setCategory:AVAudioSessionCategoryRecord error:&audioSessionError];
+    // [self.audioSession setCategory:AVAudioSessionCategoryRecord error:&audioSessionError];
 
 
     if (audioSessionError != nil) {
@@ -82,13 +82,14 @@
     // A recognition task represents a speech recognition session.
     // We keep a reference to the task so that it can be cancelled.
     self.recognitionTask = [self.speechRecognizer recognitionTaskWithRequest:self.recognitionRequest resultHandler:^(SFSpeechRecognitionResult * _Nullable result, NSError * _Nullable error) {
-      
+
         if (self.recognitionTask.isCancelled || self.recognitionTask.isFinishing){
             [self sendEventWithName:@"onSpeechEnd" body:@{@"error": @false}];
         }
-
+        
         if (error != nil) {
-            [self sendResult:RCTMakeError([error localizedDescription], nil, nil) :nil :nil :nil];
+            NSString *errorMessage = [NSString stringWithFormat:@"%ld/%@", error.code, [error localizedDescription]];
+            [self sendResult:RCTMakeError(errorMessage, nil, nil) :nil :nil :nil];
             [self teardown];
             return;
         }
@@ -99,6 +100,7 @@
             for (SFTranscription* transcription in result.transcriptions) {
                 [transcriptionDics addObject:transcription.formattedString];
             }
+            NSLog(@"%d", isFinal);
             [self sendResult:nil:result.bestTranscription.formattedString :transcriptionDics :@(isFinal)];
         }
       
@@ -134,7 +136,7 @@
 
 - (void) sendResult:(NSDictionary*)error :(NSString*)bestTranscription :(NSArray*)transcriptions :(NSNumber*)isFinal {
     if (error != nil) {
-        [self sendEventWithName:@"onSpeechError" body:@{@"error": error[@"message"]}];
+        [self sendEventWithName:@"onSpeechError" body:@{@"error": error}];
     }
     if (bestTranscription != nil) {
         [self sendEventWithName:@"onSpeechResults" body:@{@"value":@[bestTranscription]} ];
@@ -143,7 +145,7 @@
         [self sendEventWithName:@"onSpeechPartialResults" body:@{@"value":transcriptions} ];
     }
     if (isFinal != nil) {
-        [self sendEventWithName:@"onSpeechRecognized" body:@true];
+        [self sendEventWithName:@"onSpeechRecognized" body: isFinal];
     }
 }
 
@@ -151,7 +153,7 @@
 - (void) teardown {
     [self.recognitionTask cancel];
     self.recognitionTask = nil;
-    [self.audioSession setCategory:AVAudioSessionCategoryAmbient error:nil];
+    // [self.audioSession setCategory:AVAudioSessionCategoryAmbient error:nil];
     self.audioSession = nil;
 
     
@@ -250,7 +252,3 @@ RCT_EXPORT_MODULE()
 
 
 @end
-  
-
-
-
