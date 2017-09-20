@@ -6,6 +6,7 @@ import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.bridge.WritableMap;
@@ -30,10 +31,41 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
   final ReactApplicationContext reactContext;
   private SpeechRecognizer speech = null;
   private boolean isRecognizing = false;
+  private String locale = null;
+  private int numberOfBreakingSentence = 0;
 
   public VoiceModule(ReactApplicationContext reactContext) {
     super(reactContext);
     this.reactContext = reactContext;
+  }
+
+  private String getLocale(String locale){
+    if(locale != null && !locale.equals("")){
+      return locale;
+    }
+
+    return Locale.getDefault().toString();
+  }
+
+  private void startListening() {
+    if (speech != null) {
+      speech.destroy();
+      speech = null;
+    }
+    speech = SpeechRecognizer.createSpeechRecognizer(this.reactContext);
+    speech.setRecognitionListener(this);
+
+    final Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, getLocale(this.locale));
+    intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+    intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+    // intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 200000);
+    // intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 100000);
+    // intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 100000);
+
+    speech.startListening(intent);
+    isRecognizing = true;
   }
 
   @Override
@@ -43,36 +75,18 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
 
   @ReactMethod
   public void startSpeech(final String locale, final Callback callback) {
-    final VoiceModule self = this;
+    this.locale = locale;
+    this.numberOfBreakingSentence = 0;
     Handler mainHandler = new Handler(this.reactContext.getMainLooper());
     mainHandler.post(new Runnable() {
-
-      private String getLocale(String locale){
-        if(locale != null && !locale.equals("")){
-          return locale;
-        }
-
-        return Locale.getDefault().toString();
-      }
 
       @Override
       public void run() {
         try {
-          speech = SpeechRecognizer.createSpeechRecognizer(self.reactContext);
-        } catch(Exception e) {
+          startListening();
+        } catch (Exception e) {
           callback.invoke(e);
         }
-
-        speech.setRecognitionListener(self);
-
-        final Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, getLocale(locale));
-        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
-        intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-
-        speech.startListening(intent);
-        isRecognizing = true;
         callback.invoke(false);
       }
     });
@@ -86,6 +100,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
       public void run() {
         try {
           speech.stopListening();
+          isRecognizing = false;
           callback.invoke(false);
         } catch(Exception e) {
           callback.invoke(e);
@@ -119,6 +134,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
       public void run() {
         try {
           speech.destroy();
+          speech = null;
           isRecognizing = false;
           callback.invoke(false);
         } catch(Exception e) {
@@ -159,9 +175,11 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
 
   @Override
   public void onBeginningOfSpeech() {
-    WritableMap event = Arguments.createMap();
-    event.putBoolean("error", false);
-    sendEvent("onSpeechStart", event);
+    // The beginning of automatic detected speech
+    // WritableMap event = Arguments.createMap();
+    // event.putBoolean("error", false);
+    // sendEvent("onSpeechStart", event);
+    Log.d("ASR", "onBeginningOfSpeech()");
   }
 
   @Override
@@ -169,21 +187,40 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
     WritableMap event = Arguments.createMap();
     event.putBoolean("error", false);
     sendEvent("onSpeechRecognized", event);
+    Log.d("ASR", "onBufferReceived()");
   }
 
   @Override
   public void onEndOfSpeech() {
-    WritableMap event = Arguments.createMap();
-    event.putBoolean("error", false);
-    sendEvent("onSpeechEnd", event);
+    if (isRecognizing) {
+      final VoiceModule self = this;
+      Handler mainHandler = new Handler(this.reactContext.getMainLooper());
+      mainHandler.post(new Runnable() {
+        @Override
+        public void run() {
+          speech.cancel();
+          startListening();
+          self.numberOfBreakingSentence += 1;
+        }
+      });
+    } else {
+      WritableMap event = Arguments.createMap();
+      event.putBoolean("error", false);
+      sendEvent("onSpeechEnd", event);
+      Log.d("ASR", "onEndOfSpeech()");
+    }
   }
 
   @Override
   public void onError(int errorCode) {
-    String errorMessage = getErrorText(errorCode);
+    String errorMessage = String.format("%d/%s", errorCode, getErrorText(errorCode));
+    WritableMap error = Arguments.createMap();
+    error.putString("message", errorMessage);
     WritableMap event = Arguments.createMap();
-    event.putString("error", errorMessage);
+    event.putMap("error", error);
     sendEvent("onSpeechError", event);
+    Log.d("ASR", "onError() - " + errorMessage);
+    
   }
 
   @Override
@@ -200,7 +237,10 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
 
     WritableMap event = Arguments.createMap();
     event.putArray("value", arr);
+    event.putInt("numberOfBreakingSentence", this.numberOfBreakingSentence);
     sendEvent("onSpeechPartialResults", event);
+    Log.d("ASR", "onPartialResults()");
+    
   }
 
   @Override
@@ -208,6 +248,8 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
     WritableMap event = Arguments.createMap();
     event.putBoolean("error", false);
     sendEvent("onSpeechStart", event);
+    Log.d("ASR", "onReadyForSpeech()");
+    
   }
 
   @Override
@@ -222,6 +264,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
     WritableMap event = Arguments.createMap();
     event.putArray("value", arr);
     sendEvent("onSpeechResults", event);
+    Log.d("ASR", "onResults()");
   }
 
   @Override
