@@ -1,6 +1,7 @@
 package com.wenkesj.voice;
 
 import android.content.Intent;
+import android.media.AudioManager;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -75,6 +76,9 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
 
   @ReactMethod
   public void startSpeech(final String locale, final Callback callback) {
+    AudioManager audioManager=(AudioManager)this.reactContext.getSystemService(this.reactContext.AUDIO_SERVICE);
+    audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
+
     this.locale = locale;
     this.numberOfBreakingSentence = 0;
     Handler mainHandler = new Handler(this.reactContext.getMainLooper());
@@ -94,6 +98,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
 
   @ReactMethod
   public void stopSpeech(final Callback callback) {
+    final VoiceModule self = this;
     Handler mainHandler = new Handler(this.reactContext.getMainLooper());
     mainHandler.post(new Runnable() {
       @Override
@@ -101,6 +106,8 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
         try {
           speech.stopListening();
           isRecognizing = false;
+          AudioManager audioManager=(AudioManager)self.reactContext.getSystemService(self.reactContext.AUDIO_SERVICE);
+          audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
           callback.invoke(false);
         } catch(Exception e) {
           callback.invoke(e);
@@ -111,6 +118,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
 
   @ReactMethod
   public void cancelSpeech(final Callback callback) {
+    final VoiceModule self = this;
     Handler mainHandler = new Handler(this.reactContext.getMainLooper());
     mainHandler.post(new Runnable() {
       @Override
@@ -118,6 +126,8 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
         try {
           speech.cancel();
           isRecognizing = false;
+          AudioManager audioManager=(AudioManager)self.reactContext.getSystemService(self.reactContext.AUDIO_SERVICE);
+          audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
           callback.invoke(false);
         } catch(Exception e) {
           callback.invoke(e);
@@ -128,6 +138,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
 
   @ReactMethod
   public void destroySpeech(final Callback callback) {
+    final VoiceModule self = this;
     Handler mainHandler = new Handler(this.reactContext.getMainLooper());
     mainHandler.post(new Runnable() {
       @Override
@@ -136,6 +147,8 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
           speech.destroy();
           speech = null;
           isRecognizing = false;
+          AudioManager audioManager=(AudioManager)self.reactContext.getSystemService(self.reactContext.AUDIO_SERVICE);
+          audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
           callback.invoke(false);
         } catch(Exception e) {
           callback.invoke(e);
