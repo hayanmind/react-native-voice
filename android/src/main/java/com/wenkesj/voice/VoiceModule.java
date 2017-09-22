@@ -33,6 +33,10 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
   private SpeechRecognizer speech = null;
   private boolean isRecognizing = false;
   private String locale = null;
+  /*
+    'numberOfBreakingSentenece'
+    How many user stop speaking between startSpeech and stopSpeech in Android
+  */
   private int numberOfBreakingSentence = 0;
 
   public VoiceModule(ReactApplicationContext reactContext) {
