@@ -110,8 +110,6 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
         try {
           speech.stopListening();
           isRecognizing = false;
-          AudioManager audioManager=(AudioManager)self.reactContext.getSystemService(self.reactContext.AUDIO_SERVICE);
-          audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
           callback.invoke(false);
         } catch(Exception e) {
           callback.invoke(e);
@@ -130,8 +128,6 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
         try {
           speech.cancel();
           isRecognizing = false;
-          AudioManager audioManager=(AudioManager)self.reactContext.getSystemService(self.reactContext.AUDIO_SERVICE);
-          audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
           callback.invoke(false);
         } catch(Exception e) {
           callback.invoke(e);
@@ -186,8 +182,8 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
 
   private void sendEvent(String eventName, @Nullable WritableMap params) {
     this.reactContext
-    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-    .emit(eventName, params);
+      .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+      .emit(eventName, params);
   }
 
   @Override
@@ -237,7 +233,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
     event.putMap("error", error);
     sendEvent("onSpeechError", event);
     Log.d("ASR", "onError() - " + errorMessage);
-    
+
   }
 
   @Override
@@ -257,7 +253,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
     event.putInt("numberOfBreakingSentence", this.numberOfBreakingSentence);
     sendEvent("onSpeechPartialResults", event);
     Log.d("ASR", "onPartialResults()");
-    
+
   }
 
   @Override
@@ -266,7 +262,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
     event.putBoolean("error", false);
     sendEvent("onSpeechStart", event);
     Log.d("ASR", "onReadyForSpeech()");
-    
+
   }
 
   @Override
@@ -295,35 +291,35 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
     String message;
     switch (errorCode) {
       case SpeechRecognizer.ERROR_AUDIO:
-      message = "Audio recording error";
-      break;
+        message = "Audio recording error";
+        break;
       case SpeechRecognizer.ERROR_CLIENT:
-      message = "Client side error";
-      break;
+        message = "Client side error";
+        break;
       case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
-      message = "Insufficient permissions";
-      break;
+        message = "Insufficient permissions";
+        break;
       case SpeechRecognizer.ERROR_NETWORK:
-      message = "Network error";
-      break;
+        message = "Network error";
+        break;
       case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
-      message = "Network timeout";
-      break;
+        message = "Network timeout";
+        break;
       case SpeechRecognizer.ERROR_NO_MATCH:
-      message = "No match";
-      break;
+        message = "No match";
+        break;
       case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-      message = "RecognitionService busy";
-      break;
+        message = "RecognitionService busy";
+        break;
       case SpeechRecognizer.ERROR_SERVER:
-      message = "error from server";
-      break;
+        message = "error from server";
+        break;
       case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-      message = "No speech input";
-      break;
+        message = "No speech input";
+        break;
       default:
-      message = "Didn't understand, please try again.";
-      break;
+        message = "Didn't understand, please try again.";
+        break;
     }
     return message;
   }
