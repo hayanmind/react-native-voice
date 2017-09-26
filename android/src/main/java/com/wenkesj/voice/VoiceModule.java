@@ -92,10 +92,10 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
       public void run() {
         try {
           startListening();
+          callback.invoke(false);
         } catch (Exception e) {
-          callback.invoke(e);
+          callback.invoke(e.getMessage());
         }
-        callback.invoke(false);
       }
     });
   }
@@ -112,7 +112,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
           isRecognizing = false;
           callback.invoke(false);
         } catch(Exception e) {
-          callback.invoke(e);
+          callback.invoke(e.getMessage());
         }
       }
     });
@@ -130,7 +130,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
           isRecognizing = false;
           callback.invoke(false);
         } catch(Exception e) {
-          callback.invoke(e);
+          callback.invoke(e.getMessage());
         }
       }
     });
@@ -151,7 +151,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
           audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
           callback.invoke(false);
         } catch(Exception e) {
-          callback.invoke(e);
+          callback.invoke(e.getMessage());
         }
       }
     });
@@ -168,7 +168,7 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
           Boolean isSpeechAvailable = SpeechRecognizer.isRecognitionAvailable(self.reactContext);
           callback.invoke(isSpeechAvailable, false);
         } catch(Exception e) {
-          callback.invoke(false, e);
+          callback.invoke(false, e.getMessage());
         }
       }
     });
