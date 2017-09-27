@@ -177,18 +177,18 @@
 RCT_EXPORT_METHOD(stopSpeech:(RCTResponseSenderBlock)callback)
 {
     [self.recognitionTask finish];
-    callback(false);
+    callback(@[@false]);
 }
 
 
 RCT_EXPORT_METHOD(cancelSpeech:(RCTResponseSenderBlock)callback) {
     [self.recognitionTask cancel];
-    callback(false);
+    callback(@[@false]);
 }
 
 RCT_EXPORT_METHOD(destroySpeech:(RCTResponseSenderBlock)callback) {
     [self teardown];
-    callback(false);
+    callback(@[@false]);
 }
 
 RCT_EXPORT_METHOD(isSpeechAvailable:(RCTResponseSenderBlock)callback) {
