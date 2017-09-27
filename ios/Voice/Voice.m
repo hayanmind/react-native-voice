@@ -45,6 +45,7 @@
         [self sendResult:RCTMakeError([audioSessionError localizedDescription], nil, nil) :nil :nil :nil];
         return;
     }
+    /*
     [self.audioSession setMode:AVAudioSessionModeMeasurement error:&audioSessionError];
     if (audioSessionError != nil) {
         [self sendResult:RCTMakeError([audioSessionError localizedDescription], nil, nil) :nil :nil :nil];
@@ -55,6 +56,7 @@
         [self sendResult:RCTMakeError([audioSessionError localizedDescription], nil, nil) :nil :nil :nil];
         return;
     }
+    */
     
     
     self.recognitionRequest = [[SFSpeechAudioBufferRecognitionRequest alloc] init];
