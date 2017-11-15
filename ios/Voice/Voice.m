@@ -235,7 +235,13 @@ RCT_EXPORT_METHOD(startSpeech:(NSString*)localeStr callback:(RCTResponseSenderBl
                 [self sendResult:RCTMakeError(@"Speech recognition restricted on this device", nil, nil) :nil :nil :nil];
                 break;
             case SFSpeechRecognizerAuthorizationStatusAuthorized:
-                [self setupAndStartRecognizing:localeStr];
+                @try {
+                    [self setupAndStartRecognizing:localeStr];
+                }
+                @catch (NSException *e) {
+                    NSString *errorMessage = [NSString stringWithFormat:@"%@ - %@", [e name], [e reason]];
+                    [self sendResult:RCTMakeError(errorMessage, nil, nil) :nil :nil :nil];
+                }
                 break;
         }
     }];
