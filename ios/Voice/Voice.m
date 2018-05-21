@@ -38,13 +38,14 @@
     
     NSError* audioSessionError = nil;
     self.audioSession = [AVAudioSession sharedInstance];
-    [self.audioSession setCategory:AVAudioSessionCategoryRecord error:&audioSessionError];
-
-
+    // [self.audioSession setCategory:AVAudioSessionCategoryRecord error:&audioSessionError];
+    
+    
     if (audioSessionError != nil) {
         [self sendResult:RCTMakeError([audioSessionError localizedDescription], nil, nil) :nil :nil :nil];
         return;
     }
+    /*
     [self.audioSession setMode:AVAudioSessionModeMeasurement error:&audioSessionError];
     if (audioSessionError != nil) {
         [self sendResult:RCTMakeError([audioSessionError localizedDescription], nil, nil) :nil :nil :nil];
@@ -55,6 +56,7 @@
         [self sendResult:RCTMakeError([audioSessionError localizedDescription], nil, nil) :nil :nil :nil];
         return;
     }
+    */
     
     
     self.recognitionRequest = [[SFSpeechAudioBufferRecognitionRequest alloc] init];
@@ -78,17 +80,14 @@
     self.recognitionRequest.shouldReportPartialResults = YES;
     
     [self sendEventWithName:@"onSpeechStart" body:@true];
-
+    
     // A recognition task represents a speech recognition session.
     // We keep a reference to the task so that it can be cancelled.
     self.recognitionTask = [self.speechRecognizer recognitionTaskWithRequest:self.recognitionRequest resultHandler:^(SFSpeechRecognitionResult * _Nullable result, NSError * _Nullable error) {
-      
-        if (self.recognitionTask.isCancelled || self.recognitionTask.isFinishing){
-            [self sendEventWithName:@"onSpeechEnd" body:@{@"error": @false}];
-        }
-
+        
         if (error != nil) {
-            [self sendResult:RCTMakeError([error localizedDescription], nil, nil) :nil :nil :nil];
+            NSString *errorMessage = [NSString stringWithFormat:@"%ld/%@", error.code, [error localizedDescription]];
+            [self sendResult:RCTMakeError(errorMessage, nil, nil) :nil :nil :nil];
             [self teardown];
             return;
         }
@@ -101,14 +100,17 @@
             }
             [self sendResult:nil:result.bestTranscription.formattedString :transcriptionDics :@(isFinal)];
         }
-      
+        
         if (isFinal == YES) {
+            if (self.recognitionTask.isCancelled || self.recognitionTask.isFinishing){
+                [self sendEventWithName:@"onSpeechEnd" body:@{@"error": @false}];
+            }
             [self teardown];
         }
-      
-      
+        
+        
     }];
-
+    
     AVAudioFormat* recordingFormat = [inputNode outputFormatForBus:0];
     
     [inputNode installTapOnBus:0 bufferSize:1024 format:recordingFormat block:^(AVAudioPCMBuffer * _Nonnull buffer, AVAudioTime * _Nonnull when) {
@@ -129,21 +131,21 @@
 
 - (NSArray<NSString *> *)supportedEvents
 {
-  return @[@"onSpeechResults", @"onSpeechStart", @"onSpeechPartialResults", @"onSpeechError", @"onSpeechEnd", @"onSpeechRecognized", @"onSpeechVolumeChanged"];
+    return @[@"onSpeechResults", @"onSpeechStart", @"onSpeechPartialResults", @"onSpeechError", @"onSpeechEnd", @"onSpeechRecognized", @"onSpeechVolumeChanged"];
 }
 
 - (void) sendResult:(NSDictionary*)error :(NSString*)bestTranscription :(NSArray*)transcriptions :(NSNumber*)isFinal {
     if (error != nil) {
-        [self sendEventWithName:@"onSpeechError" body:@{@"error": error[@"message"]}];
+        [self sendEventWithName:@"onSpeechError" body:@{@"error": error}];
     }
     if (bestTranscription != nil) {
         [self sendEventWithName:@"onSpeechResults" body:@{@"value":@[bestTranscription]} ];
     }
     if (transcriptions != nil) {
-        [self sendEventWithName:@"onSpeechPartialResults" body:@{@"value":transcriptions} ];
+        [self sendEventWithName:@"onSpeechPartialResults" body:@{@"value":transcriptions, @"numberOfBreakingSentence": @0} ];
     }
     if (isFinal != nil) {
-        [self sendEventWithName:@"onSpeechRecognized" body:@true];
+        [self sendEventWithName:@"onSpeechRecognized" body: @{@"isFinal": isFinal}];
     }
 }
 
@@ -151,9 +153,9 @@
 - (void) teardown {
     [self.recognitionTask cancel];
     self.recognitionTask = nil;
-    [self.audioSession setCategory:AVAudioSessionCategoryAmbient error:nil];
+    // [self.audioSession setCategory:AVAudioSessionCategoryAmbient error:nil];
     self.audioSession = nil;
-
+    
     
     if (self.audioEngine.isRunning) {
         [self.audioEngine stop];
@@ -175,44 +177,44 @@
 RCT_EXPORT_METHOD(stopSpeech:(RCTResponseSenderBlock)callback)
 {
     [self.recognitionTask finish];
-    callback(false);
+    callback(@[@false]);
 }
 
 
 RCT_EXPORT_METHOD(cancelSpeech:(RCTResponseSenderBlock)callback) {
     [self.recognitionTask cancel];
-    callback(false);
+    callback(@[@false]);
 }
 
 RCT_EXPORT_METHOD(destroySpeech:(RCTResponseSenderBlock)callback) {
     [self teardown];
-    callback(false);
+    callback(@[@false]);
 }
 
 RCT_EXPORT_METHOD(isSpeechAvailable:(RCTResponseSenderBlock)callback) {
-  [SFSpeechRecognizer requestAuthorization:^(SFSpeechRecognizerAuthorizationStatus status) {
-    switch (status) {
-      case SFSpeechRecognizerAuthorizationStatusAuthorized:
-        callback(@[@true]);
-        break;
-      default:
-        callback(@[@false]);
-    }
-  }];
+    [SFSpeechRecognizer requestAuthorization:^(SFSpeechRecognizerAuthorizationStatus status) {
+        switch (status) {
+            case SFSpeechRecognizerAuthorizationStatusAuthorized:
+                callback(@[@true]);
+                break;
+            default:
+                callback(@[@false]);
+        }
+    }];
 }
 RCT_EXPORT_METHOD(isRecognizing:(RCTResponseSenderBlock)callback) {
-  if (self.recognitionTask != nil){
-    switch (self.recognitionTask.state) {
-      case SFSpeechRecognitionTaskStateRunning:
-        callback(@[@true]);
-        break;
-      default:
+    if (self.recognitionTask != nil){
+        switch (self.recognitionTask.state) {
+            case SFSpeechRecognitionTaskStateRunning:
+                callback(@[@true]);
+                break;
+            default:
+                callback(@[@false]);
+        }
+    }
+    else {
         callback(@[@false]);
     }
-  }
-  else {
-    callback(@[@false]);
-  }
 }
 
 RCT_EXPORT_METHOD(startSpeech:(NSString*)localeStr callback:(RCTResponseSenderBlock)callback) {
@@ -220,7 +222,7 @@ RCT_EXPORT_METHOD(startSpeech:(NSString*)localeStr callback:(RCTResponseSenderBl
         [self sendResult:RCTMakeError(@"Speech recognition already started!", nil, nil) :nil :nil :nil];
         return;
     }
-  
+    
     [SFSpeechRecognizer requestAuthorization:^(SFSpeechRecognizerAuthorizationStatus status) {
         switch (status) {
             case SFSpeechRecognizerAuthorizationStatusNotDetermined:
@@ -233,7 +235,13 @@ RCT_EXPORT_METHOD(startSpeech:(NSString*)localeStr callback:(RCTResponseSenderBl
                 [self sendResult:RCTMakeError(@"Speech recognition restricted on this device", nil, nil) :nil :nil :nil];
                 break;
             case SFSpeechRecognizerAuthorizationStatusAuthorized:
-                [self setupAndStartRecognizing:localeStr];
+                @try {
+                    [self setupAndStartRecognizing:localeStr];
+                }
+                @catch (NSException *e) {
+                    NSString *errorMessage = [NSString stringWithFormat:@"%@ - %@", [e name], [e reason]];
+                    [self sendResult:RCTMakeError(errorMessage, nil, nil) :nil :nil :nil];
+                }
                 break;
         }
     }];
@@ -250,7 +258,7 @@ RCT_EXPORT_MODULE()
 
 
 @end
-  
+
 
 
 
