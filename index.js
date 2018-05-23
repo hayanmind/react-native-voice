@@ -38,34 +38,53 @@ class RCTVoice {
       this._listeners = Object.keys(this._events)
         .map((key, index) => voiceEmitter.addListener(key, this._events[key]));
     }
-    return Voice.startSpeech(locale, (error) => {
-      if (error) {
-        return error;
-      }
-      return null;
+    return new Promise((resolve, reject) => {
+      Voice.startSpeech(locale, (error) => {
+        if (error) {
+          reject(new Error(error));
+        } else {
+          resolve();
+        }
+      });
     });
   }
   stop() {
-    return Voice.stopSpeech((error) => {
-      if (error) {
-        return error;
-      }
-      return null;
+    return new Promise((resolve, reject) => {
+      Voice.stopSpeech((error) => {
+        if (error) {
+          reject(new Error(error));
+        } else {
+          resolve();
+        }
+      });
     });
   }
   cancel() {
-    return Voice.cancelSpeech((error) => {
-      if (error) {
-        return error;
-      }
-      return null;
+    return new Promise((resolve, reject) => {
+      Voice.cancelSpeech((error) => {
+        if (error) {
+          reject(new Error(error));
+        } else {
+          resolve();
+        }
+      });
     });
   }
-  isAvailable(callback) {
-    Voice.isSpeechAvailable(callback);
+  isAvailable() {
+    return new Promise((resolve, reject) => {
+      Voice.isSpeechAvailable((isAvailable, error) => {
+        if (error) {
+          reject(new Error(error));
+        } else {
+          resolve(isAvailable);
+        }
+      });
+    });
   }
   isRecognizing() {
-    return Voice.isRecognizing(isRecognizing => isRecognizing);
+    return new Promise((resolve, reject) => {
+      Voice.isRecognizing(isRecognizing => resolve(isRecognizing));
+    });
   }
   _onSpeechStart(e) {
     if (this.onSpeechStart) {
