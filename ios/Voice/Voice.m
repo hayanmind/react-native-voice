@@ -156,12 +156,11 @@
     // [self.audioSession setCategory:AVAudioSessionCategoryAmbient error:nil];
     self.audioSession = nil;
     
-    
     if (self.audioEngine.isRunning) {
         [self.audioEngine stop];
         [self.recognitionRequest endAudio];
-        [self.audioEngine.inputNode removeTapOnBus:0];
     }
+    [self.audioEngine.inputNode removeTapOnBus:0];
     
     self.recognitionRequest = nil;
 }
